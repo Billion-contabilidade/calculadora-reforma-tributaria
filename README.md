@@ -2,7 +2,7 @@
 
 Tela do escritório para consultar as calculadoras oficiais da Receita Federal da reforma tributária do consumo. São duas contas diferentes, cada uma com a própria API:
 
-| Cálculo | Quem usa | API | Tela |
+| Cálculo | O que calcula | API | Tela |
 |---|---|---|---|
 | Regime regular (Lucro Presumido e Lucro Real) | CBS, IBS e Imposto Seletivo a partir de NCM ou NBS | http://localhost:8080/api | http://localhost:8090/ |
 | Simples Nacional | CBS e IBS com as alíquotas efetivas do cliente | http://localhost:8082/api | http://localhost:8090/simples |
@@ -14,33 +14,60 @@ As calculadoras oficiais são estes repositórios:
 - https://github.com/ReceitaFederal/calculadora-rtc-regime-regular
 - https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional
 
-## O que instalar
+O passo a passo abaixo vale para um Windows que ainda não tem Java nem Maven. Use o PowerShell. A primeira execução precisa de internet.
 
-- JDK 21 ou superior. O [Temurin 21](https://adoptium.net/) serve.
-- Internet na primeira execução. O Maven Wrapper (`mvnw.cmd`) baixa o Maven sozinho.
+## 1. Git
 
-O wrapper usa o Java de `JAVA_HOME`, não o primeiro `java` do PATH. No PowerShell, aponte para a pasta do JDK 21 antes de cada comando:
+O clone do projeto usa o Git. Se `git --version` responder com um número, pule este passo.
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot"
+winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements
+```
+
+Feche o PowerShell e abra outro. O terminal que já estava aberto não enxerga o Git recém-instalado.
+
+## 2. JDK 21
+
+O projeto usa Java 21. Não instale só o Java 8. Este comando instala o Temurin 21:
+
+```powershell
+winget install --id EclipseAdoptium.Temurin.21.JDK -e --accept-package-agreements --accept-source-agreements
+```
+
+O `mvnw.cmd` não usa o primeiro `java` do PATH. Ele usa o Java da variável `JAVA_HOME`. Grave essa variável para o usuário e também para a janela atual:
+
+```powershell
+$jdk = Get-ChildItem "C:\Program Files\Eclipse Adoptium" -Directory |
+    Where-Object { $_.Name -like "jdk-21*" } |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+[Environment]::SetEnvironmentVariable("JAVA_HOME", $jdk.FullName, "User")
+$env:JAVA_HOME = $jdk.FullName
 $env:Path = "$env:JAVA_HOME\bin;" + $env:Path
 java -version
 ```
 
-Troque o caminho se o JDK estiver em outra pasta. A versão impressa precisa ser 21. Rode o `mvnw.cmd` de dentro da pasta de cada projeto.
+A versão impressa precisa ser 21. Cada terminal novo, aberto depois desse comando, já recebe o `JAVA_HOME`. Um terminal que já estava aberto continua sem ele: rode de novo as duas linhas `$env:JAVA_HOME` e `$env:Path` nessa janela, ou feche e abra outra.
 
-## Clonar
+## 3. Maven
+
+Não instale o Maven. Dentro de cada pasta do projeto existe o `mvnw.cmd`. Na primeira execução ele baixa o Maven sozinho, desde que o `JAVA_HOME` aponte para o JDK 21 e a máquina tenha internet. Rode o `mvnw.cmd` sempre de dentro da pasta daquele projeto.
+
+## 4. Clonar
 
 ```powershell
+cd $env:USERPROFILE\Desktop
 git clone https://github.com/Billion-contabilidade/calculadora-reforma-tributaria.git
 cd calculadora-reforma-tributaria
 git clone https://github.com/ReceitaFederal/calculadora-rtc-regime-regular.git
 git clone https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional.git
 ```
 
-Se essas duas pastas já existirem com o código da Receita, não clone de novo.
+Se o `git clone` das calculadoras disser que a pasta já existe, apague a pasta vazia e rode o clone outra vez.
 
-## 1. Regime regular, porta 8080
+A partir daqui são três terminais. Em cada um, confirme `java -version` antes do `mvnw.cmd`. A primeira chamada em cada pasta demora, porque baixa o Maven e as dependências.
+
+## 5. Regime regular, porta 8080
 
 O perfil `offline` só inicia se o banco SQLite existir. Gere o banco uma vez, a partir de `calculadora-rtc-regime-regular`:
 
@@ -55,7 +82,7 @@ A API fica em http://localhost:8080/api e o Swagger em http://localhost:8080/api
 
 Deixe esse terminal aberto. Em 2026 a API lê as alíquotas do banco. A partir de 2027 ela exige alíquotas nominais e o resultado é simulado.
 
-## 2. Simples Nacional, porta 8082
+## 6. Simples Nacional, porta 8082
 
 Os scripts SQL não vêm no repositório do Simples Nacional. Copie a pasta `flyway` do regime regular, gere o banco e suba a API em outro terminal:
 
@@ -71,7 +98,7 @@ A API fica em http://localhost:8082/api e o Swagger em http://localhost:8082/api
 
 Nesta base, o catálogo de atividades vale a partir de 2027 e o cálculo aceita NF-e (55) e NFC-e (65). As alíquotas efetivas de IBS e CBS são informadas na tela. A API não busca alíquota de referência.
 
-## 3. Tela, porta 8090
+## 7. Tela, porta 8090
 
 Com as duas APIs no ar, em um terceiro terminal:
 
@@ -87,7 +114,7 @@ Os clientes ficam em `tela-calculadora/data/clientes.json`.
 
 ## JAR, se quiser rodar sem o Maven
 
-Gere o pacote dentro de cada pasta e execute o JAR a partir da raiz daquele projeto, para o banco em `calculadora\db` ser encontrado.
+Gere o pacote dentro de cada pasta e execute o JAR a partir da raiz daquele projeto, para o banco em `calculadora\db` ser encontrado. O `java` desse comando também precisa ser o do `JAVA_HOME`.
 
 ```powershell
 .\mvnw.cmd clean package -DskipTests
