@@ -1,0 +1,16 @@
+br\com\billion\tela\web\TelaController.class
+br\com\billion\tela\calculo\CalculadoraClient$UfOption.class
+br\com\billion\tela\simples\SimplesForm.class
+br\com\billion\tela\calculo\ResultadoConta.class
+br\com\billion\tela\simples\ResultadoSimples.class
+br\com\billion\tela\TelaApplication.class
+br\com\billion\tela\calculo\CalculadoraIndisponivelException.class
+br\com\billion\tela\simples\SimplesClient.class
+br\com\billion\tela\simples\SimplesController.class
+br\com\billion\tela\cliente\ClienteStore$1.class
+br\com\billion\tela\calculo\CalculadoraClient.class
+br\com\billion\tela\simples\SimplesClient$Atividade.class
+br\com\billion\tela\calculo\CalculoForm.class
+br\com\billion\tela\cliente\Cliente.class
+br\com\billion\tela\cliente\ClienteStore.class
+br\com\billion\tela\calculo\CalculadoraClient$MunicipioOption.class

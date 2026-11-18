@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calculadora · Portal Billion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Manrope:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/tela.css}">
+</head>
+<body>
+<div class="shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-mark">B</span>
+            <span class="brand-name">Portal Billion</span>
+        </div>
+        <nav>
+            <a class="nav-item active" href="/">Regime regular</a>
+            <a class="nav-item" href="/simples">Simples Nacional</a>
+        </nav>
+        <p class="sidebar-note">Lucro Presumido e Lucro Real. A API fica na porta 8080.</p>
+    </aside>
+
+    <main class="workspace">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Escritório</p>
+                <h1>Calculadora de IBS e CBS</h1>
+            </div>
+        </header>
+
+        <div class="page">
+            <p class="falha" th:if="${falhaApi}" th:text="${falhaApi}"></p>
+            <ul class="erros" th:if="${!erros.isEmpty()}">
+                <li th:each="erro : ${erros}" th:text="${erro}"></li>
+            </ul>
+            <p class="aviso" th:if="${aviso}" th:text="${aviso}"></p>
+
+            <section class="panel carteira">
+                <h2>Carteira</h2>
+                <ul class="lista" th:if="${!clientes.isEmpty()}">
+                    <li th:each="cliente : ${clientes}" th:classappend="${cliente.id == form.clienteId} ? 'selecionado'">
+                        <a th:href="@{/(cliente=${cliente.id})}">
+                            <strong th:text="${cliente.razaoSocial}">Razão social</strong>
+                            <span th:text="${cliente.cnpj + ' · ' + cliente.regime}">CNPJ</span>
+                        </a>
+                        <form th:action="@{/clientes/{id}/excluir(id=${cliente.id})}" method="post"
+                              onsubmit="return confirm('Excluir este cliente?')">
+                            <button type="submit" class="text-button">Excluir</button>
+                        </form>
+                    </li>
+                </ul>
+                <p class="vazio" th:if="${clientes.isEmpty()}">Nenhum cliente guardado. Preencha os dados e guarde, ou calcule direto.</p>
+            </section>
+
+            <form class="conta" th:object="${form}" method="post" th:action="@{/calcular}">
+                <input type="hidden" th:field="*{clienteId}">
+
+                <section class="panel">
+                    <h2>Cliente</h2>
+                    <div class="grade">
+                        <label>Razão social
+                            <input th:field="*{razaoSocial}" autocomplete="organization" required>
+                        </label>
+                        <label>CNPJ
+                            <input th:field="*{cnpj}" inputmode="numeric" autocomplete="off" required>
+                        </label>
+                        <label>Regime
+                            <select th:field="*{regime}">
+                                <option value="LUCRO PRESUMIDO">Lucro Presumido</option>
+                                <option value="LUCRO REAL">Lucro Real</option>
+                                <option value="SIMPLES NACIONAL">Simples Nacional</option>
+                            </select>
+                        </label>
+                        <label>UF
+                            <select id="uf" th:field="*{uf}">
+                                <option th:each="uf : ${ufs}" th:value="${uf.sigla}" th:text="${uf.sigla + ' — ' + uf.nome}"></option>
+                            </select>
+                        </label>
+                        <label class="largo">Município
+                            <input id="busca-municipio" type="search" placeholder="Buscar município" autocomplete="off">
+                            <select id="municipio" th:field="*{municipio}">
+                                <option th:each="municipio : ${municipios}" th:value="${municipio.codigo}" th:text="${municipio.nome}"></option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="acoes">
+                        <a class="secondary-button" href="/">Novo cliente</a>
+                        <button class="secondary-button" type="submit" th:formaction="@{/clientes}">Guardar cliente</button>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>Operação</h2>
+                    <div class="grade">
+                        <label>Data do fato gerador
+                            <input id="data" type="date" th:field="*{data}" required>
+                        </label>
+                        <label>Documento
+                            <select th:field="*{tpDoc}">
+                                <option value="91">NFS-e</option>
+                                <option value="55">NF-e</option>
+                                <option value="65">NFC-e</option>
+                            </select>
+                        </label>
+                        <label>NBS do serviço
+                            <input th:field="*{nbs}" placeholder="115011000" inputmode="numeric">
+                        </label>
+                        <label>NCM da mercadoria
+                            <input th:field="*{ncm}" placeholder="só se for mercadoria" inputmode="numeric">
+                        </label>
+                        <label>CST
+                            <input th:field="*{cst}" required>
+                        </label>
+                        <label>Classificação tributária
+                            <input th:field="*{cClassTrib}" required>
+                        </label>
+                        <label>Base de cálculo
+                            <input th:field="*{baseCalculo}" type="number" min="0.01" step="0.01" required>
+                        </label>
+                        <label>Quantidade
+                            <input th:field="*{quantidade}" type="number" min="0.0001" step="0.0001" required>
+                        </label>
+                        <label>Unidade
+                            <input th:field="*{unidade}" required>
+                        </label>
+                    </div>
+                    <p class="nota">Em 2026 a calculadora busca as alíquotas. A partir de 2027 elas precisam ser informadas. Consultoria em TI usa o NBS 115011000, CST 000 e classificação 000001.</p>
+
+                    <fieldset class="aliquotas" id="aliquotas">
+                        <legend>Alíquotas nominais de 2027 em diante</legend>
+                        <div class="grade">
+                            <label>CBS %
+                                <input th:field="*{aliquotaCbs}" type="number" min="0" step="0.0001">
+                            </label>
+                            <label>IBS estadual %
+                                <input th:field="*{aliquotaIbsUf}" type="number" min="0" step="0.0001">
+                            </label>
+                            <label>IBS municipal %
+                                <input th:field="*{aliquotaIbsMun}" type="number" min="0" step="0.0001">
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div class="acoes">
+                        <button class="primary-button" type="submit">Calcular</button>
+                    </div>
+                </section>
+            </form>
+
+            <section class="resultado" th:if="${resultado != null}">
+                <article class="total">
+                    <p th:text="${resultado.documento + ' · ' + resultado.municipio + '/' + resultado.uf}">NFS-e</p>
+                    <h2 th:text="${resultado.cliente}">Cliente</h2>
+                    <strong th:text="${#numbers.formatDecimal(resultado.total, 1, 'POINT', 2, 'COMMA')}">0,00</strong>
+                    <span>Total de IBS e CBS</span>
+                    <em th:if="${resultado.simulado}">Cálculo simulado com alíquotas informadas</em>
+                </article>
+
+                <table>
+                    <caption>Tributos do item</caption>
+                    <thead>
+                    <tr>
+                        <th>Tributo</th>
+                        <th>Alíquota</th>
+                        <th>Valor</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Base de cálculo</td>
+                        <td></td>
+                        <td th:text="${#numbers.formatDecimal(resultado.base, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            IBS estadual
+                            <small th:text="${resultado.memoriaIbsUf}"></small>
+                        </td>
+                        <td th:text="${#numbers.formatDecimal(resultado.aliquotaIbsUf, 1, 'POINT', 2, 'COMMA') + '%'}">0,00%</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorIbsUf, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            IBS municipal
+                            <small th:text="${resultado.memoriaIbsMun}"></small>
+                        </td>
+                        <td th:text="${#numbers.formatDecimal(resultado.aliquotaIbsMun, 1, 'POINT', 2, 'COMMA') + '%'}">0,00%</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorIbsMun, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>IBS do item</td>
+                        <td></td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorIbs, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            CBS
+                            <small th:text="${resultado.memoriaCbs}"></small>
+                        </td>
+                        <td th:text="${#numbers.formatDecimal(resultado.aliquotaCbs, 1, 'POINT', 2, 'COMMA') + '%'}">0,00%</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorCbs, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="nota">Diferimento, devolução, crédito presumido e monofasia ficam zerados quando a nota não tem esses eventos.</p>
+                <details>
+                    <summary>JSON devolvido pela calculadora</summary>
+                    <pre th:text="${resultado.json}"></pre>
+                </details>
+            </section>
+        </div>
+    </main>
+</div>
+<script>
+    const uf = document.querySelector("#uf");
+    const municipio = document.querySelector("#municipio");
+    const busca = document.querySelector("#busca-municipio");
+    const data = document.querySelector("#data");
+    const aliquotas = document.querySelector("#aliquotas");
+    let cache = [...municipio.options].map((opcao) => ({ codigo: opcao.value, nome: opcao.textContent }));
+
+    function anoExigeAliquota() {
+        const ano = Number((data.value || "").slice(0, 4));
+        aliquotas.hidden = !(ano >= 2027);
+    }
+
+    function desenharMunicipios(selecionado) {
+        const texto = (busca.value || "").trim().toLocaleLowerCase("pt-BR");
+        const atual = selecionado == null ? municipio.value : String(selecionado);
+        const visiveis = cache.filter((item) => !texto || item.nome.toLocaleLowerCase("pt-BR").includes(texto));
+        const lista = visiveis.length ? visiveis : cache;
+        const temAtual = lista.some((item) => String(item.codigo) === atual);
+        municipio.replaceChildren();
+        for (const item of lista) {
+            const opcao = document.createElement("option");
+            opcao.value = item.codigo;
+            opcao.textContent = item.nome;
+            opcao.selected = temAtual && String(item.codigo) === atual;
+            municipio.append(opcao);
+        }
+        if (!temAtual && municipio.options.length > 0) {
+            municipio.options[0].selected = true;
+        }
+    }
+
+    async function carregarMunicipios(sigla, selecionado) {
+        const resposta = await fetch("/municipios?uf=" + encodeURIComponent(sigla));
+        if (!resposta.ok) {
+            return;
+        }
+        cache = await resposta.json();
+        busca.value = "";
+        desenharMunicipios(selecionado);
+    }
+
+    uf.addEventListener("change", () => carregarMunicipios(uf.value, null));
+    busca.addEventListener("input", () => desenharMunicipios(municipio.value));
+    data.addEventListener("change", anoExigeAliquota);
+    anoExigeAliquota();
+</script>
+</body>
+</html>

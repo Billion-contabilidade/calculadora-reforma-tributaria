@@ -1,0 +1,17 @@
+[ {
+  "id" : "fcb9331a-581c-46da-825e-65912b471e83",
+  "razaoSocial" : "Aurora Comércio de Alimentos Ltda.",
+  "cnpj" : "28.940.315/0001-72",
+  "regime" : "SIMPLES NACIONAL",
+  "uf" : "PR",
+  "municipio" : 4106902,
+  "municipioNome" : "Curitiba"
+}, {
+  "id" : "ecfcea78-5d34-413e-9795-35c01afc0de5",
+  "razaoSocial" : "Nexo Tecnologia e Serviços S.A.",
+  "cnpj" : "04.817.266/0001-09",
+  "regime" : "LUCRO PRESUMIDO",
+  "uf" : "PR",
+  "municipio" : 4106902,
+  "municipioNome" : "Curitiba"
+} ]

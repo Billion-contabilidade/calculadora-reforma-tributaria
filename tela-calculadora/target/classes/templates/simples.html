@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simples Nacional · Portal Billion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Manrope:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/tela.css}">
+</head>
+<body>
+<div class="shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-mark">B</span>
+            <span class="brand-name">Portal Billion</span>
+        </div>
+        <nav>
+            <a class="nav-item" href="/">Regime regular</a>
+            <a class="nav-item active" href="/simples">Simples Nacional</a>
+        </nav>
+        <p class="sidebar-note">CBS e IBS do Simples. A API fica na porta 8082.</p>
+    </aside>
+
+    <main class="workspace">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Escritório</p>
+                <h1>Calculadora do Simples Nacional</h1>
+            </div>
+        </header>
+
+        <div class="page">
+            <p class="falha" th:if="${falhaApi}" th:text="${falhaApi}"></p>
+            <ul class="erros" th:if="${!erros.isEmpty()}">
+                <li th:each="erro : ${erros}" th:text="${erro}"></li>
+            </ul>
+            <p class="aviso" th:if="${aviso}" th:text="${aviso}"></p>
+
+            <section class="panel carteira">
+                <h2>Carteira</h2>
+                <ul class="lista" th:if="${!clientes.isEmpty()}">
+                    <li th:each="cliente : ${clientes}" th:classappend="${cliente.id == form.clienteId} ? 'selecionado'">
+                        <a th:href="@{/simples(cliente=${cliente.id})}">
+                            <strong th:text="${cliente.razaoSocial}">Razão social</strong>
+                            <span th:text="${cliente.cnpj + ' · ' + cliente.regime}">CNPJ</span>
+                        </a>
+                        <form th:action="@{/simples/clientes/{id}/excluir(id=${cliente.id})}" method="post"
+                              onsubmit="return confirm('Excluir este cliente?')">
+                            <button type="submit" class="text-button">Excluir</button>
+                        </form>
+                    </li>
+                </ul>
+                <p class="vazio" th:if="${clientes.isEmpty()}">Nenhum cliente guardado. Preencha os dados e guarde, ou calcule direto.</p>
+            </section>
+
+            <form class="conta" th:object="${form}" method="post" th:action="@{/simples/calcular}">
+                <input type="hidden" th:field="*{clienteId}">
+                <input type="hidden" th:field="*{regime}">
+
+                <section class="panel">
+                    <h2>Cliente</h2>
+                    <div class="grade">
+                        <label>Razão social
+                            <input th:field="*{razaoSocial}" autocomplete="organization" required>
+                        </label>
+                        <label>CNPJ
+                            <input th:field="*{cnpj}" inputmode="numeric" autocomplete="off" required>
+                        </label>
+                        <label>UF
+                            <select id="uf" th:field="*{uf}">
+                                <option th:each="uf : ${ufs}" th:value="${uf.sigla}" th:text="${uf.sigla + ' — ' + uf.nome}"></option>
+                            </select>
+                        </label>
+                        <label class="largo">Município
+                            <input id="busca-municipio" type="search" placeholder="Buscar município" autocomplete="off">
+                            <select id="municipio" th:field="*{municipio}">
+                                <option th:each="municipio : ${municipios}" th:value="${municipio.codigo}" th:text="${municipio.nome}"></option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="acoes">
+                        <a class="secondary-button" href="/simples">Novo cliente</a>
+                        <button class="secondary-button" type="submit" th:formaction="@{/simples/clientes}">Guardar cliente</button>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>Operação</h2>
+                    <div class="grade">
+                        <label>Data do fato gerador
+                            <input id="data" type="date" th:field="*{data}" required>
+                        </label>
+                        <label>Documento
+                            <select id="tpDoc" th:field="*{tpDoc}">
+                                <option value="55">NF-e</option>
+                                <option value="65">NFC-e</option>
+                            </select>
+                        </label>
+                        <label>Situação no Simples
+                            <select id="crt" th:field="*{crt}">
+                                <option value="1">Simples Nacional</option>
+                                <option value="2">Excesso de sublimite</option>
+                            </select>
+                        </label>
+                        <label>Classificação tributária
+                            <input id="cClassTrib" th:field="*{cClassTrib}" required>
+                        </label>
+                        <label class="largo">Atividade
+                            <select id="atividade" th:field="*{atividade}">
+                                <option value="">Escolha a atividade</option>
+                                <option th:each="atividade : ${atividades}" th:value="${atividade.codigo}"
+                                        th:text="${atividade.codigo + ' — ' + atividade.descricao + (atividade.anexo == '' ? '' : ' · ' + atividade.anexo) + (atividade.disponivel ? '' : ' (indisponível neste documento)')}"></option>
+                            </select>
+                        </label>
+                        <label>Base de cálculo
+                            <input th:field="*{baseCalculo}" type="number" min="0.01" step="0.01" required>
+                        </label>
+                        <label>Imposto Seletivo já calculado
+                            <input th:field="*{valorImpostoSeletivo}" type="number" min="0" step="0.01">
+                        </label>
+                        <label>Alíquota efetiva de IBS %
+                            <input id="aliquotaIbs" th:field="*{aliquotaIbs}" type="number" min="0" step="0.0001" placeholder="1.25">
+                        </label>
+                        <label>Alíquota efetiva de CBS %
+                            <input th:field="*{aliquotaCbs}" type="number" min="0" step="0.0001" placeholder="2.75" required>
+                        </label>
+                    </div>
+                    <p class="nota">As alíquotas são as efetivas do Simples do cliente. A calculadora não busca alíquota de referência. Nesta base, as atividades passam a valer em 2027, e a conta aceita NF-e e NFC-e.</p>
+                    <div class="acoes">
+                        <button class="primary-button" type="submit">Calcular</button>
+                    </div>
+                </section>
+            </form>
+
+            <section class="resultado" th:if="${resultado != null}">
+                <article class="total">
+                    <p th:text="${resultado.documento}">NF-e</p>
+                    <h2 th:text="${resultado.cliente}">Cliente</h2>
+                    <strong th:text="${#numbers.formatDecimal(resultado.total, 1, 'POINT', 2, 'COMMA')}">0,00</strong>
+                    <span th:text="${resultado.calculado} ? 'Total de IBS, CBS e Imposto Seletivo' : 'Total dos tributos devidos'">Total</span>
+                </article>
+                <table th:if="${resultado.calculado}">
+                    <caption>Tributos do item</caption>
+                    <thead>
+                    <tr>
+                        <th>Tributo</th>
+                        <th>Alíquota</th>
+                        <th>Valor</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>
+                            Receita bruta do item
+                            <small th:text="${resultado.tipoReceita}"></small>
+                        </td>
+                        <td></td>
+                        <td th:text="${#numbers.formatDecimal(resultado.receitaBruta, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>Base de IBS e CBS</td>
+                        <td></td>
+                        <td th:text="${#numbers.formatDecimal(resultado.base, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>IBS do Simples</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.aliquotaIbs, 1, 'POINT', 2, 'COMMA') + '%'}">0,00%</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorIbs, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>CBS do Simples</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.aliquotaCbs, 1, 'POINT', 2, 'COMMA') + '%'}">0,00%</td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorCbs, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    <tr>
+                        <td>Imposto Seletivo informado</td>
+                        <td></td>
+                        <td th:text="${#numbers.formatDecimal(resultado.valorIs, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="nota" th:if="${resultado.calculado}">No excesso de sublimite a API não devolve IBS. O Imposto Seletivo entra só com o valor que você informou.</p>
+                <details>
+                    <summary>JSON devolvido pela calculadora</summary>
+                    <pre th:text="${resultado.json}"></pre>
+                </details>
+            </section>
+        </div>
+    </main>
+</div>
+<script>
+    const uf = document.querySelector("#uf");
+    const municipio = document.querySelector("#municipio");
+    const busca = document.querySelector("#busca-municipio");
+    const data = document.querySelector("#data");
+    const tpDoc = document.querySelector("#tpDoc");
+    const crt = document.querySelector("#crt");
+    const cClassTrib = document.querySelector("#cClassTrib");
+    const atividade = document.querySelector("#atividade");
+    const aliquotaIbs = document.querySelector("#aliquotaIbs");
+    let cache = [...municipio.options].map((opcao) => ({ codigo: opcao.value, nome: opcao.textContent }));
+
+    function desenharMunicipios(selecionado) {
+        const texto = (busca.value || "").trim().toLocaleLowerCase("pt-BR");
+        const atual = selecionado == null ? municipio.value : String(selecionado);
+        const visiveis = cache.filter((item) => !texto || item.nome.toLocaleLowerCase("pt-BR").includes(texto));
+        const lista = visiveis.length ? visiveis : cache;
+        const temAtual = lista.some((item) => String(item.codigo) === atual);
+        municipio.replaceChildren();
+        for (const item of lista) {
+            const opcao = document.createElement("option");
+            opcao.value = item.codigo;
+            opcao.textContent = item.nome;
+            opcao.selected = temAtual && String(item.codigo) === atual;
+            municipio.append(opcao);
+        }
+        if (!temAtual && municipio.options.length > 0) {
+            municipio.options[0].selected = true;
+        }
+    }
+
+    async function carregarMunicipios(sigla, selecionado) {
+        const resposta = await fetch("/municipios?uf=" + encodeURIComponent(sigla));
+        if (!resposta.ok) {
+            return;
+        }
+        cache = await resposta.json();
+        busca.value = "";
+        desenharMunicipios(selecionado);
+    }
+
+    function ajustarIbs() {
+        const excesso = crt.value === "2";
+        aliquotaIbs.disabled = excesso;
+        aliquotaIbs.required = !excesso;
+    }
+
+    async function carregarAtividades() {
+        if (!data.value) {
+            return;
+        }
+        const params = new URLSearchParams({
+            data: data.value,
+            tpDoc: tpDoc.value,
+            cClassTrib: cClassTrib.value
+        });
+        const resposta = await fetch("/simples/atividades?" + params);
+        if (!resposta.ok) {
+            return;
+        }
+        const lista = await resposta.json();
+        const atual = atividade.value;
+        atividade.replaceChildren();
+        const vazio = document.createElement("option");
+        vazio.value = "";
+        vazio.textContent = "Escolha a atividade";
+        atividade.append(vazio);
+        for (const item of lista) {
+            const opcao = document.createElement("option");
+            opcao.value = item.codigo;
+            opcao.textContent = item.codigo + " — " + item.descricao + (item.anexo ? " · " + item.anexo : "") + (item.disponivel ? "" : " (indisponível neste documento)");
+            opcao.selected = item.codigo === atual;
+            atividade.append(opcao);
+        }
+    }
+
+    uf.addEventListener("change", () => carregarMunicipios(uf.value, null));
+    busca.addEventListener("input", () => desenharMunicipios(municipio.value));
+    crt.addEventListener("change", ajustarIbs);
+    data.addEventListener("change", carregarAtividades);
+    tpDoc.addEventListener("change", carregarAtividades);
+    cClassTrib.addEventListener("change", carregarAtividades);
+    ajustarIbs();
+</script>
+</body>
+</html>
