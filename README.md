@@ -14,7 +14,7 @@ As calculadoras oficiais são estes repositórios:
 - https://github.com/ReceitaFederal/calculadora-rtc-regime-regular
 - https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional
 
-O passo a passo abaixo vale para um Windows que ainda não tem Java nem Maven. Use o PowerShell. A primeira execução precisa de internet.
+O passo a passo abaixo vale para um Windows 10 ou 11 que ainda não tem Git, Java nem Maven. Use o PowerShell. A primeira execução precisa de internet. Se `winget` não for reconhecido, instale o "Instalador de Aplicativo" pela Microsoft Store e abra o PowerShell de novo.
 
 ## 1. Git
 
@@ -33,6 +33,8 @@ O projeto usa Java 21. Não instale só o Java 8. Este comando instala o Temurin
 ```powershell
 winget install --id EclipseAdoptium.Temurin.21.JDK -e --accept-package-agreements --accept-source-agreements
 ```
+
+Se o Windows pedir permissão de administrador, aceite.
 
 O `mvnw.cmd` não usa o primeiro `java` do PATH. Ele usa o Java da variável `JAVA_HOME`. Grave essa variável para o usuário e também para a janela atual:
 
@@ -63,16 +65,24 @@ git clone https://github.com/ReceitaFederal/calculadora-rtc-regime-regular.git
 git clone https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional.git
 ```
 
-Se o `git clone` das calculadoras disser que a pasta já existe, apague a pasta vazia e rode o clone outra vez.
+Se o `git clone` das calculadoras disser que a pasta já existe, apague essa pasta e rode o clone outra vez.
 
-A partir daqui são três terminais. Em cada um, confirme `java -version` antes do `mvnw.cmd`. A primeira chamada em cada pasta demora, porque baixa o Maven e as dependências.
+A partir daqui são três terminais, e cada um começa na pasta do usuário. Cole isto no começo de cada janela. A segunda linha recupera o `JAVA_HOME` quando o terminal foi aberto antes da instalação do Java:
+
+```powershell
+$env:JAVA_HOME = [Environment]::GetEnvironmentVariable("JAVA_HOME", "User")
+$env:Path = "$env:JAVA_HOME\bin;" + $env:Path
+java -version
+```
+
+A versão impressa precisa ser 21. A primeira chamada do `mvnw.cmd` em cada pasta demora, porque baixa o Maven e as dependências.
 
 ## 5. Regime regular, porta 8080
 
-O perfil `offline` só inicia se o banco SQLite existir. Gere o banco uma vez, a partir de `calculadora-rtc-regime-regular`:
+O perfil `offline` só inicia se o banco SQLite existir. Gere o banco uma vez e deixe a API rodando neste terminal:
 
 ```powershell
-cd calculadora-rtc-regime-regular
+cd "$env:USERPROFILE\Desktop\calculadora-reforma-tributaria\calculadora-rtc-regime-regular"
 New-Item -ItemType Directory -Force calculadora\db | Out-Null
 .\mvnw.cmd flyway:migrate "-Dflyway.configFiles=flyway\flyway-pro.conf" --batch-mode --errors
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=offline"
@@ -87,7 +97,7 @@ Deixe esse terminal aberto. Em 2026 a API lê as alíquotas do banco. A partir d
 Os scripts SQL não vêm no repositório do Simples Nacional. Copie a pasta `flyway` do regime regular, gere o banco e suba a API em outro terminal:
 
 ```powershell
-cd calculadora-rtc-simples-nacional
+cd "$env:USERPROFILE\Desktop\calculadora-reforma-tributaria\calculadora-rtc-simples-nacional"
 Copy-Item -Recurse -Force ..\calculadora-rtc-regime-regular\flyway .\flyway
 New-Item -ItemType Directory -Force calculadora\db | Out-Null
 .\mvnw.cmd flyway:migrate "-Dflyway.configFiles=flyway\flyway-pro.conf" --batch-mode --errors
@@ -103,7 +113,7 @@ Nesta base, o catálogo de atividades vale a partir de 2027 e o cálculo aceita 
 Com as duas APIs no ar, em um terceiro terminal:
 
 ```powershell
-cd tela-calculadora
+cd "$env:USERPROFILE\Desktop\calculadora-reforma-tributaria\tela-calculadora"
 .\mvnw.cmd spring-boot:run
 ```
 
